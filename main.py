@@ -79,14 +79,13 @@ while True:
             html = html + '<div><label>{}</label><span class="class-{}">{}</span></div>\n'.format(data.get('name'),
                                                                                                   data.get('name'),
                                                                                                   data.get('value'))
-
-        response = Server.template().format(html)
-        cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+        response = Server.template(DISPLAY_NAME) % html
+        cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n'.encode())
     else:
         response = json.dumps( jsonObject )
-        cl.send('HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n')
+        cl.send('HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n'.encode())
 
-    cl.send(response)
+    cl.send(response.encode())
     cl.close()
 
 
