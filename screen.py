@@ -25,10 +25,14 @@ class Screen:
     def print_screen_dht11( display, temp, humidity, ip, datetime ):
         display.text('T:{}C'.format(temp), 0, 10, 1)
         display.text('H:{:.0f}%'.format(humidity), 0, 20, 1)
-        display.text('i:{}'.format(ip), 0, 30, 1)
+        display.text('ip:{}'.format(ip), 0, 30, 1)
         display.text('i:{}'.format(datetime), 0, 40, 1)
         display.show()
 
     def print_screen_error( display, error ):
         display.text( error, 0, 40, 1)
+        display.show()
+
+    def show_ip(display, ip):
+        display.text('ip:{}'.format(ip), 0, 30, 1)
         display.show()

@@ -1,13 +1,13 @@
 from machine import Pin, I2C
-from uio import StringIO
 import ssd1306
-import sys;
 
 import utime as time
 from screen import Screen
 from server import Server
 from dht11 import DHT11
 from ifconfig import IFCONFIG
+import socket
+import json
 
 VERSION = "0.1"
 NAME = "TSRV"
@@ -26,44 +26,70 @@ time.sleep(2)
 
 # network
 ip_address = IFCONFIG.get_address()
+short_ip_address = ip_address.split( '.' )
+
+# Server
+time.sleep(2)
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((ip_address, 80))
+s.listen(1)
+
 
 # measure
 d = DHT11.load_sensor( PIN_TEMP )
 count = 0
 
 Screen.clear_screen( display, DISPLAY_NAME )
+Screen.show_ip( display, short_ip_address[3] )
+
+output_html = True
 
 while True:
-    display.text(DISPLAY_NAME, 0, 0, 1)
+    cl, addr = s.accept()
+    print('client connected from', addr)
+    cl_file = cl.makefile('rwb', 0)
+    request = cl.recv(2048)
+    parseRequest = request.decode('utf-8').split(' ')
 
-    try:
-        d.measure()
+    if parseRequest[0] == 'GET':
+        params = parseRequest[1]
+        if params == '/html':
+            output_html = True
 
-        temp = d.temperature()
-        hum = d.humidity()
+        if params == '/json':
+            output_html = False
 
-        count = count + 1
+    # Response
+    d.measure()
+    time.sleep(2) # wait !
+    Screen.clear_screen(display, DISPLAY_NAME)
+    temp = d.temperature()
+    hum = d.humidity()
+    count = count + 1
+    Screen.print_screen_dht11(display, temp, hum, short_ip_address[3], count)
 
-        Screen.print_screen_dht11( display, temp, hum, ip_address, count )
+    jsonObject = [
+        { "name": "temp", "value": temp },
+        { "name": "hum", "value": hum },
+    ]
 
-    except Exception as e:
-        s = StringIO();
-        sys.print_exception(e, s)
-        s = s.getvalue();
-        s = s.split('\n')
-        line = s[1].split(',');
-        line = line[1];
-        error = s[2];
-        err = error + line;
-        print(err)
-        # Todo print error on WS
-        #with open('error.log', 'a') as f:
-        #    f.write(err)
+    if output_html:
+        html = '';
+        for data in jsonObject:
+            html = html + '<div><label>{}</label><span class="class-{}">{}</span></div>\n'.format(data.get('name'),
+                                                                                                  data.get('name'),
+                                                                                                  data.get('value'))
 
-        Screen.clear_screen(display, DISPLAY_NAME)
-        Screen.print_screen_error( display, 'ERR !!!' )
+        response = Server.template().format(html)
+        cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+    else:
+        response = json.dumps( jsonObject )
+        cl.send('HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n')
 
-    time.sleep(2)
-    Screen.clear_screen( display, DISPLAY_NAME )
+    cl.send(response)
+    cl.close()
 
-    #Server.pin_status()
+
+
+
+

@@ -9,8 +9,6 @@ class IFCONFIG:
         if IFCONFIG.is_connect:
             sta_if = network.WLAN(network.STA_IF)
             data = sta_if.ifconfig()
-            full_address = data[0]
-            address = full_address.split( '.' )
-            return address[3]
+            return data[0]
 
         return 'XXX'
