@@ -68,21 +68,27 @@ while True:
     count = count + 1
     Screen.print_screen_dht11(display, temp, hum, short_ip_address[3], count)
 
-    jsonObject = [
-        { "name": "temp", "value": temp },
-        { "name": "hum", "value": hum },
+    sensors = [
+        {
+            'datetime': None,
+            'deviceName': "esp8266-sensors",
+            'temperature': float(temp),
+            'pressure': float(0.0),
+            'humidity': float(hum),
+            'isValid': True
+        }
     ]
 
     if output_html:
         html = '';
-        for data in jsonObject:
+        for data in sensors:
             html = html + '<div><label>{}</label><span class="class-{}">{}</span></div>\n'.format(data.get('name'),
                                                                                                   data.get('name'),
                                                                                                   data.get('value'))
         response = Server.template(DISPLAY_NAME) % html
         cl.send('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n'.encode())
     else:
-        response = json.dumps( jsonObject )
+        response = json.dumps( sensors )
         cl.send('HTTP/1.0 200 OK\r\nContent-type: application/json\r\n\r\n'.encode())
 
     cl.send(response.encode())
